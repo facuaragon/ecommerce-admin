@@ -2,14 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+
+img{
+    max-height: 100%
+}
 h1{
     @apply text-blue-900 mb-2 text-xl
 }
-input, textarea{
+input, textarea, select{
     @apply border-2 border-gray-300 rounded-md px-1 w-full;
     @apply mb-2
 }
-input:focus, textarea:focus{
+input:focus, textarea:focus, select:focus{
     @apply  border-blue-900
 }
 
@@ -46,3 +50,14 @@ table.basic a{
     @apply bg-gray-500 text-white
 }
 
+
+.loader {
+    width: 48px;
+    height: 48px;
+    border: 5px solid #FFF;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+    }

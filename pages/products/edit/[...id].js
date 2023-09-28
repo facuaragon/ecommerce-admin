@@ -8,6 +8,7 @@ export default function EditProduct() {
   const router = useRouter();
   const [productInfo, setProductInfo] = useState(null);
   const { id } = router.query;
+
   useEffect(() => {
     if (!id) {
       return;
@@ -15,7 +16,7 @@ export default function EditProduct() {
     axios.get("/api/products?id=" + id).then((response) => {
       setProductInfo(response.data);
     });
-  }, []);
+  }, [id]);
   return (
     <>
       <Layout>

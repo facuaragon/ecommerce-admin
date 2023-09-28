@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
+import Spinner from "./Spinner";
+import { ReactSortable } from "react-sortablejs";
 
 export default function ProductForm({
   _id,
@@ -10,19 +12,21 @@ export default function ProductForm({
   images: existingImages,
 }) {
   const router = useRouter();
-
-  const [imageSrc, setImageSrc] = useState([]);
-  const [uploadData, setUploadData] = useState();
-
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState(existingTitle || "");
   const [description, setDescription] = useState(existingDescription || "");
   const [price, setPrice] = useState(existingPrice || "");
   const [goToProducts, setGoToProducts] = useState(false);
   const [images, setImages] = useState(existingImages || []);
+
+  useEffect(() => {
+    console.log("message: ", message);
+  }, [message]);
   //   console.log(_id);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = { title, description, price };
+    const data = { title, description, price, images };
     if (_id) {
       //update
       await axios.put("/api/products", { ...data, _id });
@@ -36,9 +40,27 @@ export default function ProductForm({
     router.push("/products");
   }
 
-  const uploadClodinaryImages = async (e) => {
+  const uploadCloudinaryImages = async (e) => {
     const files = e.target?.files;
+    const MAX_TOTAL_SIZE = 1024 * 1024; // 1MB in bytes
+    let totalSize = 0;
+
     if (files?.length > 0) {
+      setLoading(true);
+
+      // Calculate the total size of selected files
+      Array.from(files).forEach((file) => {
+        totalSize += file.size;
+      });
+
+      if (totalSize > MAX_TOTAL_SIZE) {
+        setMessage("Selected files exceed 1MB, please try again");
+        setLoading(false);
+        return; // No need to proceed further
+      } else {
+        setMessage("");
+      }
+
       const promises = Array.from(files).map((file) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -55,16 +77,22 @@ export default function ProductForm({
         });
       });
 
-      try {
-        const results = await Promise.all(promises);
-        const res = await axios.post("/api/upload", results);
-        console.log(res.data);
-        // setImageSrc([...imageSrc, ...results]);
-        // console.log([...imageSrc, ...results]);
-        setImages([...images, ...res.data]);
-      } catch (error) {
-        console.error(error);
-      }
+      Promise.all(promises)
+        .then(async (results) => {
+          try {
+            const res = await axios.post("/api/upload", results);
+            // console.log(res.data);
+            setLoading(false);
+            setImages([...images, ...res.data]);
+          } catch (error) {
+            console.error(error);
+            setLoading(false);
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+          setLoading(false);
+        });
     }
   };
 
@@ -74,6 +102,11 @@ export default function ProductForm({
     const positionToRemove = Number(e.target.id);
     array.splice(positionToRemove, 1);
     setImages([...array]);
+  };
+
+  const updateImagesOrder = (images) => {
+    // console.log(images);
+    setImages(images);
   };
 
   return (
@@ -87,74 +120,94 @@ export default function ProductForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         ></input>
-        <label>Photos:</label>
+        <label>
+          Photos:{" "}
+          {message && (
+            <span className="bg-red-500 px-2 rounded-md text-white text-xs">
+              {message}
+            </span>
+          )}
+        </label>
         <div className="mb-2 flex gap-3 flex-wrap">
           <label className="cursor-pointer w-24 h-24 flex items-center justify-center text-sm gap-1 text-gray-500 rounded-lg bg-gray-200">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-
-            <div>Add</div>
-            <input
-              type="file"
-              name="file"
-              multiple
-              accept="image/png, image/jpeg"
-              className="hidden"
-              onChange={uploadClodinaryImages}
-            ></input>
-          </label>
-          {images &&
-            images.map((image, i) => (
-              <div
-                key={i}
-                className="relative border rounded-md overflow-hidden"
-              >
-                <img
-                  src={image}
-                  width={100}
-                  style={{ maxHeight: "100px", width: "auto" }}
-                  alt="Image"
-                />
-                <button
-                  name={i}
-                  type="button"
-                  onClick={deleteImage}
-                  className="absolute top-1 right-1 bg-gray-200 text-gray-500 rounded-xl"
+            {loading ? (
+              <Spinner />
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
                 >
-                  <div
-                    id={i}
-                    className="absolute w-full h-full z-1 bg-transparent"
-                  ></div>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6 z-0"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+
+                <div>Add</div>
+
+                <input
+                  type="file"
+                  name="file"
+                  multiple
+                  accept="image/png, image/jpeg"
+                  className="hidden"
+                  onChange={uploadCloudinaryImages}
+                ></input>
+              </>
+            )}
+          </label>
+
+          <ReactSortable
+            className="flex flex-wrap gap-2"
+            list={images}
+            setList={updateImagesOrder}
+          >
+            {images &&
+              images.map((image, i) => (
+                <div
+                  key={i}
+                  className="relative border rounded-md overflow-hidden"
+                >
+                  <img
+                    src={image}
+                    width={100}
+                    style={{ maxHeight: "100px", width: "auto" }}
+                    alt="Image"
+                  />
+                  <button
+                    name={i}
+                    type="button"
+                    onClick={deleteImage}
+                    className="absolute top-1 right-1 bg-gray-200 text-gray-500 rounded-xl"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          {!images?.length && <div>No photos in this product</div>}
+                    <div
+                      id={i}
+                      className="absolute w-full h-full z-1 bg-transparent"
+                    ></div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-6 h-6 z-0"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+          </ReactSortable>
         </div>
         <label>Product Description</label>
         <textarea
