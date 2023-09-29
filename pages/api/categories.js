@@ -1,5 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Category } from "@/models/Category";
+import mongoose from "mongoose";
 
 export default async function handler(req, res) {
   const { method } = req;
@@ -10,52 +11,50 @@ export default async function handler(req, res) {
     return res.json(categories);
   }
   if (method === "POST") {
-    const { name, parentCategory } = req.body;
+    const { name, parentCategory, properties } = req.body;
 
-    let oldCategory;
-
-    if (!parentCategory) {
-      oldCategory = await Category.findOne({ name });
-    } else {
-      oldCategory = await Category.findOne({ name, parent: parentCategory });
-    }
+    const oldCategory = await Category.findOne({
+      name,
+      parentCategory,
+      properties,
+    });
 
     if (!oldCategory) {
-      const newCategoryData = { name };
-      if (parentCategory) {
-        newCategoryData.parent = parentCategory;
-      }
-
-      const newCategory = await Category.create(newCategoryData);
+      const newCategory = await Category.create({
+        name,
+        parent: parentCategory || undefined,
+        properties,
+      });
       return res.json(newCategory);
     } else {
       return res.json({ message: "Category already exists" });
     }
   }
   if (method === "PUT") {
-    try {
-      const { name, parentCategory, _id } = req.body;
-      let update = { name };
+    const { name, parentCategory, properties, _id } = req.body;
 
-      if (parentCategory !== undefined) {
-        // Only set the 'parent' property if 'parentCategory' is defined
-        update.parent = parentCategory || null;
+    // Create an update object to set or unset the parent field as needed
+    const updateObject = {
+      name,
+      properties,
+    };
+
+    if (parentCategory) {
+      // Ensure that parentCategory is a valid ObjectId before setting it
+      if (mongoose.Types.ObjectId.isValid(parentCategory)) {
+        updateObject.parent = parentCategory;
+      } else {
+        // Handle the case where parentCategory is not a valid ObjectId
+        return res.status(400).json({ error: "Invalid parentCategory value" });
       }
-
-      // Use findOneAndUpdate to get the updated document
-      const updatedCategory = await Category.findOneAndUpdate({ _id }, update, {
-        new: true,
-      });
-
-      if (!updatedCategory) {
-        return res.status(404).json({ message: "Category not found" });
-      }
-
-      return res.json(updatedCategory);
-    } catch (error) {
-      console.error("Error updating category:", error);
-      return res.status(500).json({ message: "Internal server error" });
+    } else {
+      // Use $unset to remove the parent field if it's undefined
+      updateObject.$unset = { parent: 1 };
     }
+
+    const categoryUpdate = await Category.updateOne({ _id }, updateObject);
+
+    res.json(categoryUpdate);
   }
   if (method === "DELETE") {
     const { _id } = req.query;

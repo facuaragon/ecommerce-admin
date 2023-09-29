@@ -10,23 +10,39 @@ export default function ProductForm({
   description: existingDescription,
   price: existingPrice,
   images: existingImages,
+  category: existingCategory,
+  properties: existingProperties,
 }) {
-  const router = useRouter();
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState(existingTitle || "");
   const [description, setDescription] = useState(existingDescription || "");
+  const [category, setCategory] = useState(existingCategory || "");
+  const [productProperties, setProductProperties] = useState(
+    existingProperties || {}
+  );
   const [price, setPrice] = useState(existingPrice || "");
-  const [goToProducts, setGoToProducts] = useState(false);
   const [images, setImages] = useState(existingImages || []);
+  const [goToProducts, setGoToProducts] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [message, setMessage] = useState("");
 
+  const router = useRouter();
   useEffect(() => {
-    console.log("message: ", message);
-  }, [message]);
+    axios.get("/api/categories").then((result) => {
+      setCategories(result.data);
+    });
+  }, []);
   //   console.log(_id);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = { title, description, price, images };
+    const data = {
+      title,
+      description,
+      price,
+      images,
+      category,
+      properties: productProperties,
+    };
     if (_id) {
       //update
       await axios.put("/api/products", { ...data, _id });
@@ -44,6 +60,7 @@ export default function ProductForm({
     const files = e.target?.files;
     const MAX_TOTAL_SIZE = 1024 * 1024; // 1MB in bytes
     let totalSize = 0;
+    setMessage("");
 
     if (files?.length > 0) {
       setLoading(true);
@@ -57,8 +74,6 @@ export default function ProductForm({
         setMessage("Selected files exceed 1MB, please try again");
         setLoading(false);
         return; // No need to proceed further
-      } else {
-        setMessage("");
       }
 
       const promises = Array.from(files).map((file) => {
@@ -109,6 +124,28 @@ export default function ProductForm({
     setImages(images);
   };
 
+  const propertiesToFill = [];
+  if (categories.length > 0 && category) {
+    let catInfo = categories.find(({ _id }) => _id === category);
+    // console.log({ CatInfo });
+    propertiesToFill.push(...catInfo.properties);
+    while (catInfo.parent?._id) {
+      const parentCat = categories.find(
+        ({ _id }) => _id === catInfo?.parent?._id
+      );
+      propertiesToFill.push(...parentCat.properties);
+      catInfo = parentCat;
+    }
+  }
+
+  const setProductProp = (propName, value) => {
+    setProductProperties((prev) => {
+      const newProductProps = { ...prev };
+      newProductProps[propName] = value;
+      return newProductProps;
+    });
+  };
+
   return (
     <>
       <form onSubmit={handleSubmit}>
@@ -120,6 +157,35 @@ export default function ProductForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         ></input>
+        <label>Category</label>
+        <select
+          value={category}
+          onChange={(ev) => setCategory(ev.target.value)}
+        >
+          <option value="">uncategorized</option>
+          {!!categories.length > 0 &&
+            categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
+        </select>
+        {propertiesToFill.length > 0 &&
+          propertiesToFill.map((p, i) => (
+            <div key={i} className="flex gap-1">
+              <div>{p.name}</div>
+              <select
+                value={productProperties[p.name]}
+                onChange={(e) => setProductProp(p.name, e.target.value)}
+              >
+                {p.values.map((v, i) => (
+                  <option key={i} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
         <label>
           Photos:{" "}
           {message && (

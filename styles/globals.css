@@ -44,11 +44,10 @@ table.basic a{
 .btn-red{
     @apply bg-red-800 text-white
 }
-
-
 .btn-default{
     @apply bg-gray-500 text-white
 }
+
 
 
 .loader {
