@@ -156,7 +156,7 @@ function Categories({ swal }) {
               type="button"
               onClick={addProperty}
             >
-              Add property
+              Add new property
             </button>
             {properties.length > 0 &&
               properties.map((property, i) => (
@@ -227,7 +227,7 @@ function Categories({ swal }) {
                     <td>{category?.parent?.name}</td>
                     <td>
                       <button
-                        className="btn-primary mr-1"
+                        className="btn-default mr-1"
                         onClick={() => {
                           editCategory(category);
                         }}
@@ -235,7 +235,7 @@ function Categories({ swal }) {
                         Edit
                       </button>
                       <button
-                        className="btn-primary"
+                        className="btn-red"
                         onClick={() => deleteCategory(category)}
                       >
                         Delete

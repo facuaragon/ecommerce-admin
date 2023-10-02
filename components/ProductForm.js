@@ -172,18 +172,20 @@ export default function ProductForm({
         </select>
         {propertiesToFill.length > 0 &&
           propertiesToFill.map((p, i) => (
-            <div key={i} className="flex gap-1">
-              <div>{p.name}</div>
-              <select
-                value={productProperties[p.name]}
-                onChange={(e) => setProductProp(p.name, e.target.value)}
-              >
-                {p.values.map((v, i) => (
-                  <option key={i} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+            <div key={i} className="">
+              <label>{p.name[0].toUpperCase() + p.name.substring(1)}</label>
+              <div>
+                <select
+                  value={productProperties[p.name]}
+                  onChange={(e) => setProductProp(p.name, e.target.value)}
+                >
+                  {p.values.map((v, i) => (
+                    <option key={i} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           ))}
         <label>
@@ -195,7 +197,7 @@ export default function ProductForm({
           )}
         </label>
         <div className="mb-2 flex gap-3 flex-wrap">
-          <label className="cursor-pointer w-24 h-24 flex items-center justify-center text-sm gap-1 text-gray-500 rounded-lg bg-gray-200">
+          <label className="cursor-pointer w-24 h-24 flex flex-col items-center justify-center text-sm gap-1 text-primary rounded-lg bg-white shadow-md border border-primary">
             {loading ? (
               <Spinner />
             ) : (
@@ -250,7 +252,7 @@ export default function ProductForm({
                     name={i}
                     type="button"
                     onClick={deleteImage}
-                    className="absolute top-1 right-1 bg-gray-200 text-gray-500 rounded-xl"
+                    className="absolute top-1 right-1 bg-white text-primary rounded-xl"
                   >
                     <div
                       id={i}
