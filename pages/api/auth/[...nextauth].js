@@ -4,7 +4,9 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "../../../lib/mongodb";
 
 const adminEmails = [process.env.ADMIN_EMAIL_ONE, process.env.ADMIN_EMAIL_TWO];
+const nextAuthSecret = process.env.NEXT_AUTH_SECRET;
 export const authOptions = {
+  secret: nextAuthSecret,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
